@@ -4,7 +4,11 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
-#define BUFFER_SIZE 1028
+#define PORT 12345
+#define BUFFER_SIZE 512
+
+#define OK 0
+#define NOT_OK 1
 
 struct sockaddr_in server_addr;
 
@@ -13,26 +17,48 @@ int main(int argc, char * * argv)
 
 	int client_fd;
 	int client_socket;
+
 	char buffer[BUFFER_SIZE];
-	
+
+	/* Create socket for client */	
 	if((client_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 	{
 		perror("Socket failed");
-		return 1;
+		return (NOT_OK);
 	}
 
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = INADDR_ANY;
-	server_addr.sin_port = htons(5000);
+	server_addr.sin_port = htons(PORT);
 
-	connect(client_socket, (struct sockaddr * ) & server_addr, sizeof(server_addr));
+	/* Connect to server */
+	if(client_fd = connect(client_socket, 
+						   (struct sockaddr * ) & server_addr, 
+						   sizeof(server_addr)) < 0)
+	{
+		printf("Connection failed \n");
+		return (NOT_OK);
+	}
 
-	printf("Connected to server.\n");
+	printf("Connected to server. Write your message to server...\n");
 
-	strcpy(buffer, "Message from Client!");
+	memset(buffer, '\0', BUFFER_SIZE);
+	//strcpy(buffer, "HELLO FROM CLIENT.");
+	fgets(buffer, BUFFER_SIZE, stdin);
 	printf("Buffer: %s \n", buffer);
-	send(client_socket, buffer, strlen(buffer), 0);
+	
+	/* Send message to server */
+	send(client_socket, buffer, BUFFER_SIZE, 0);
 
-return 0;
+	memset(buffer, '\0', BUFFER_SIZE);
+
+	/* Wait for response from server */
+	recv(client_socket, buffer, BUFFER_SIZE, 0);
+
+	printf("Server: %s\n", buffer);
+
+	/* Disconnect from server */
+	close(client_socket);
+return (OK);
 
 }
